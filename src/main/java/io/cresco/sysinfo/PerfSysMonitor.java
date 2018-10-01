@@ -64,6 +64,7 @@ public class PerfSysMonitor {
     public void stop() {
         timer.cancel();
         running = false;
+
     }
 
     private class PerfMonitorTask extends TimerTask {
