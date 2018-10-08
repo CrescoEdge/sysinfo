@@ -91,9 +91,13 @@ public class Plugin implements PluginService {
 
     @Override
     public boolean isStopped() {
-        perfSysMonitor.stop();
-        pluginBuilder.setExecutor(null);
-        pluginBuilder.setIsActive(false);
+        if(perfSysMonitor != null) {
+            perfSysMonitor.stop();
+        }
+        if(pluginBuilder != null) {
+            pluginBuilder.setExecutor(null);
+            pluginBuilder.setIsActive(false);
+        }
         return true;
     }
 
