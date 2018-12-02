@@ -72,6 +72,7 @@ public class Plugin implements PluginService {
                 while (!pluginBuilder.getAgentService().getAgentState().isActive()) {
                     logger.info("Plugin " + pluginBuilder.getPluginID() + " waiting on Agent Init");
                     Thread.sleep(1000);
+
                 }
 
                 //set plugin active
