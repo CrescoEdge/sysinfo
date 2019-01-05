@@ -89,6 +89,7 @@ public class PerfSysMonitor {
             tick.setParam("is_global",Boolean.TRUE.toString());
             */
 
+
             tick.setParam("resource_id",plugin.getConfig().getStringParam("resource_id","sysinfo_resource"));
             tick.setParam("inode_id",plugin.getConfig().getStringParam("inode_id","sysinfo_inode"));
 

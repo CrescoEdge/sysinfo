@@ -98,6 +98,7 @@ class SysInfoBuilder {
         List<Map<String,String>> list = null;
         try{
             list = new ArrayList<>();
+
             OSProcess[] p = os.getProcesses(0, OperatingSystem.ProcessSort.CPU);
             for(OSProcess op : p) {
                 Map<String,String> info = new HashMap<>();
