@@ -1,6 +1,7 @@
 package io.cresco.sysinfo;
 
 
+import io.cresco.library.data.TopicType;
 import io.cresco.library.plugin.PluginBuilder;
 import io.cresco.library.utilities.CLogger;
 
@@ -78,6 +79,9 @@ public class PerfSysMonitor {
                 mapMessage.setStringProperty("region_id",plugin.getRegion());
                 mapMessage.setStringProperty("agent_id",plugin.getAgent());
                 mapMessage.setStringProperty("plugin_id", plugin.getPluginID());
+
+                plugin.getAgentService().getDataPlaneService().sendMessage(TopicType.AGENT,mapMessage);
+
 
 
             } catch (Exception ex) {
