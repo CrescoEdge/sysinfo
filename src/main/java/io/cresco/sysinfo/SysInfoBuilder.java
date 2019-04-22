@@ -436,12 +436,12 @@ class SysInfoBuilder {
             catch (Exception ex){
                 info.put("cpu-logical-count", "1");
             }
-            try {
-                info.put("cpu-sn", hardwareAbstractionLayer.getProcessor().getSystemSerialNumber());
-            }
-            catch (Exception ex){
+            //try {
+            //    info.put("cpu-sn", hardwareAbstractionLayer.getProcessor().getSystemSerialNumber());
+            //}
+            //catch (Exception ex){
                 info.put("cpu-sn", "unknown");
-            }
+            //}
             try {
                 info.put("cpu-summary", hardwareAbstractionLayer.getProcessor().toString());
             }
