@@ -412,7 +412,6 @@ class SysInfoBuilder {
         return info;
     }
 
-
     private Map<String,String> getCPUInfo2() {
         Map<String,String> info = null;
         try{
