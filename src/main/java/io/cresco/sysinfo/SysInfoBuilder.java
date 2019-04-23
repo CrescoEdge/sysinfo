@@ -51,9 +51,19 @@ class SysInfoBuilder {
     public String getSysInfoMap() {
         String jsonInfo = null;
         try {
-            systemInfo = new SystemInfo();
-            hardwareAbstractionLayer = systemInfo.getHardware();
-            os = systemInfo.getOperatingSystem();
+
+
+            if(systemInfo == null) {
+                systemInfo = new SystemInfo();
+            }
+
+            if(hardwareAbstractionLayer == null) {
+                hardwareAbstractionLayer = systemInfo.getHardware();
+            }
+
+            if(os == null) {
+                os = systemInfo.getOperatingSystem();
+            }
 
             Map<String,List<Map<String,String>>> info = new HashMap<>();
             info.put("os",getOSInfo());
@@ -68,6 +78,7 @@ class SysInfoBuilder {
 
             //getSensorInfo();
             jsonInfo = gson.toJson(info);
+            info.clear();
 
         } catch (Exception e) {
             System.out.println("SysInfoBuilder : getSysInfoMap : Error : " + e.getMessage());
