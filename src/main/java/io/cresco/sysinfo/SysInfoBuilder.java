@@ -336,21 +336,30 @@ class SysInfoBuilder {
                 info.put("cpu-id","unknown");
             }
 
-            //performance
-            long[] prevTicks = hardwareAbstractionLayer.getProcessor().getSystemCpuLoadTicks();
-            Thread.sleep(1000);
-            long[] ticks = hardwareAbstractionLayer.getProcessor().getSystemCpuLoadTicks();
+            try {
+                //performance
+                long[] prevTicks = hardwareAbstractionLayer.getProcessor().getSystemCpuLoadTicks();
+                Thread.sleep(1000);
+                long[] ticks = hardwareAbstractionLayer.getProcessor().getSystemCpuLoadTicks();
 
-            long user = ticks[0] - prevTicks[0];
-            long nice = ticks[1] - prevTicks[1];
-            long sys = ticks[2] - prevTicks[2];
-            long idle = ticks[3] - prevTicks[3];
-            long totalCpu = user + nice + sys + idle;
+                long user = ticks[0] - prevTicks[0];
+                long nice = ticks[1] - prevTicks[1];
+                long sys = ticks[2] - prevTicks[2];
+                long idle = ticks[3] - prevTicks[3];
+                long totalCpu = user + nice + sys + idle;
 
-            info.put("cpu-user-load", String.format("%.1f", (100d * user / totalCpu)));
-            info.put("cpu-nice-load", String.format("%.1f", (100d * nice / totalCpu)));
-            info.put("cpu-sys-load", String.format("%.1f", (100d * sys / totalCpu)));
-            info.put("cpu-idle-load", String.format("%.1f", (100d * idle / totalCpu)));
+                info.put("cpu-user-load", String.format("%.1f", (100d * user / totalCpu)));
+                info.put("cpu-nice-load", String.format("%.1f", (100d * nice / totalCpu)));
+                info.put("cpu-sys-load", String.format("%.1f", (100d * sys / totalCpu)));
+                info.put("cpu-idle-load", String.format("%.1f", (100d * idle / totalCpu)));
+            } catch (Exception e) {
+                //known bug in Windows will throw exception
+                info.put("cpu-user-load", "unknown");
+                info.put("cpu-nice-load", "unknown");
+                info.put("cpu-sys-load", "unknown");
+                info.put("cpu-idle-load", "unknown");
+            }
+
             list.add(info);
 
         }
