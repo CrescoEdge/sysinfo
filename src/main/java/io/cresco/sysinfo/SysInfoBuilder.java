@@ -159,13 +159,34 @@ class SysInfoBuilder {
         try{
             list = new ArrayList<>();
             Map<String,String> info = new HashMap<>();
-            info.put("sys-os", os.getVersion().toString());
-            info.put("sys-family", os.getFamily());
+            try {
+                info.put("sys-os", os.getVersion().toString());
+            } catch (Exception e) {
+                info.put("sys-os", "unknown");
+            }
+
+            try {
+                info.put("sys-family", os.getFamily());
+            } catch (Exception e) {
+                info.put("sys-family", "unknown");
+            }
             //info.put("sys-threadcount", String.valueOf(os.getThreadCount()));
-            info.put("sys-manufacturer", os.getManufacturer());
+            try {
+                info.put("sys-manufacturer", os.getManufacturer());
+            } catch (Exception e) {
+                info.put("sys-manufacturer", "unknown");
+            }
             //info.put("sys-uptime", FormatUtil.formatElapsedSecs(hardwareAbstractionLayer.getProcessor().getSystemUptime()));
-            info.put("sys-uptime", String.valueOf(hardwareAbstractionLayer.getProcessor().getSystemUptime()));
-            info.put("process-count",String.valueOf(os.getProcessCount()));
+            try {
+                info.put("sys-uptime", String.valueOf(hardwareAbstractionLayer.getProcessor().getSystemUptime()));
+            } catch (Exception e) {
+                info.put("sys-uptime", "unknown");
+            }
+            try {
+                info.put("process-count", String.valueOf(os.getProcessCount()));
+            } catch (Exception e) {
+                info.put("process-count", "unknown");
+            }
             list.add(info);
         }
         catch(Exception ex) {
