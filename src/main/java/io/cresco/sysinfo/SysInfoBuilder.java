@@ -1,6 +1,8 @@
 package io.cresco.sysinfo;
 
 import com.google.gson.Gson;
+import io.cresco.library.plugin.PluginBuilder;
+import io.cresco.library.utilities.CLogger;
 import oshi.SystemInfo;
 import oshi.hardware.HWDiskStore;
 import oshi.hardware.HWPartition;
@@ -10,6 +12,8 @@ import oshi.software.os.OSFileStore;
 import oshi.software.os.OSProcess;
 import oshi.software.os.OperatingSystem;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
@@ -20,6 +24,27 @@ class SysInfoBuilder {
     private HardwareAbstractionLayer hardwareAbstractionLayer;
     private OperatingSystem os;
     private Gson gson;
+    private CLogger logger;
+
+    public SysInfoBuilder(PluginBuilder plugin) {
+        gson = new Gson();
+
+        this.logger = plugin.getLogger(SysInfoBuilder.class.getName(),CLogger.Level.Info);
+
+        /*
+        System.setProperty("java.net.preferIPv4Stack", "true");
+        try {
+
+            } catch (Exception e) {
+                System.out.println("SysInfoBuilder : Constructor : nicLoop : Error : " + e.getMessage());
+            }
+            getSysInfoMap();
+        } catch (Exception e) {
+            System.out.println("SysInfoBuilder : Constructor : Error : " + e.getMessage());
+            e.printStackTrace();
+        }
+        */
+    }
 
     public String getSysInfoFullMap() {
         String jsonInfo = null;
@@ -41,9 +66,12 @@ class SysInfoBuilder {
             //getSensorInfo();
             jsonInfo = gson.toJson(info);
 
-        } catch (Exception e) {
-            System.out.println("SysInfoBuilder : getSysInfoMap : Error : " + e.getMessage());
-            e.printStackTrace();
+        } catch (Exception ex) {
+
+            logger.error("SysInfoBuilder : getSysInfoMap : Error : " + ex.getMessage());
+            StringWriter errors = new StringWriter();
+            ex.printStackTrace(new PrintWriter(errors));
+            logger.error(errors.toString());
         }
         return jsonInfo;
     }
@@ -51,7 +79,6 @@ class SysInfoBuilder {
     public String getSysInfoMap() {
         String jsonInfo = null;
         try {
-
 
             if(systemInfo == null) {
                 systemInfo = new SystemInfo();
@@ -70,39 +97,29 @@ class SysInfoBuilder {
             info.put("cpu",getCPUInfo());
             info.put("mem",getMemoryInfo());
             info.put("disk",getDiskInfo());
-            info.put("fs",getFSInfo());
+
+            //todo Raspbian GNU/Linux 9 (stretch) build 4.14.34-v7+ (32-bit)
+            // and perhaps others hang on os.getFileSystem().getFileStores()
+            if(!os.getFamily().contains("Raspbian")) {
+                info.put("fs",getFSInfo());
+            } else {
+                logger.warn("Disabling FSInfo for Raspbian-based systems.");
+            }
             info.put("part",getPartitionInfo());
             info.put("net",getNetworkInfo());
             //info.put("proc",getProcessInfo());
-
 
             //getSensorInfo();
             jsonInfo = gson.toJson(info);
             info.clear();
 
         } catch (Exception e) {
-            System.out.println("SysInfoBuilder : getSysInfoMap : Error : " + e.getMessage());
-            e.printStackTrace();
+            logger.error("SysInfoBuilder : getSysInfoMap : Error : " + e.getMessage());
+            StringWriter errors = new StringWriter();
+            e.printStackTrace(new PrintWriter(errors));
+            logger.error(errors.toString());
         }
         return jsonInfo;
-    }
-
-
-    public SysInfoBuilder() {
-        gson = new Gson();
-        /*
-        System.setProperty("java.net.preferIPv4Stack", "true");
-        try {
-
-            } catch (Exception e) {
-                System.out.println("SysInfoBuilder : Constructor : nicLoop : Error : " + e.getMessage());
-            }
-            getSysInfoMap();
-        } catch (Exception e) {
-            System.out.println("SysInfoBuilder : Constructor : Error : " + e.getMessage());
-            e.printStackTrace();
-        }
-        */
     }
 
     private List<Map<String,String>> getProcessInfo() {
@@ -125,17 +142,23 @@ class SysInfoBuilder {
             }
         }
         catch(Exception ex) {
-            ex.printStackTrace();
+            logger.error("getProcessInfo() " + ex.getMessage());
+            StringWriter errors = new StringWriter();
+            ex.printStackTrace(new PrintWriter(errors));
+            logger.error(errors.toString());
         }
         return list;
     }
+
     private List<Map<String,String>> getFSInfo() {
         List<Map<String,String>> list = null;
         try{
             list = new ArrayList<>();
 
             //OSFileStore[] fsArray = hardwareAbstractionLayer.getFileSystem().getFileStores();
+
             OSFileStore[] fsArray = os.getFileSystem().getFileStores();
+
             for (OSFileStore fs : fsArray) {
                 Map<String,String> info = new HashMap<>();
                 info.put("name",fs.getName());
@@ -150,10 +173,14 @@ class SysInfoBuilder {
             }
         }
         catch(Exception ex) {
-            ex.printStackTrace();
+            logger.error("getFSInfo: " + ex.getMessage());
+            StringWriter errors = new StringWriter();
+            ex.printStackTrace(new PrintWriter(errors));
+            logger.error(errors.toString());
         }
         return list;
     }
+
     private List<Map<String,String>> getOSInfo() {
         List<Map<String,String>> list = null;
         try{
@@ -190,10 +217,14 @@ class SysInfoBuilder {
             list.add(info);
         }
         catch(Exception ex) {
-            ex.printStackTrace();
+            logger.error("getOSInfo() " + ex.getMessage());
+            StringWriter errors = new StringWriter();
+            ex.printStackTrace(new PrintWriter(errors));
+            logger.error(errors.toString());
         }
         return list;
     }
+
     private List<Map<String,String>> getMemoryInfo() {
         List<Map<String,String>> list = null;
         try{
@@ -207,10 +238,15 @@ class SysInfoBuilder {
 
         }
         catch(Exception ex) {
-            ex.printStackTrace();
+            logger.error("getMemoryInfo() " + ex.getMessage());
+            StringWriter errors = new StringWriter();
+            ex.printStackTrace(new PrintWriter(errors));
+            logger.error(errors.toString());
+
         }
         return list;
     }
+
     private List<Map<String,String>> getPartitionInfo() {
         List<Map<String,String>> list = null;
         try{
@@ -227,15 +263,18 @@ class SysInfoBuilder {
                     info.put("part-mount", String.valueOf(part.getMountPoint()));
                     list.add(info);
                 }
-
             }
 
         }
         catch(Exception ex) {
-            ex.printStackTrace();
+            logger.error("getPartitionInfo() " + ex.getMessage());
+            StringWriter errors = new StringWriter();
+            ex.printStackTrace(new PrintWriter(errors));
+            logger.error(errors.toString());
         }
         return list;
     }
+
     private List<Map<String,String>> getDiskInfo() {
 
         List<Map<String,String>> list = null;
@@ -259,10 +298,14 @@ class SysInfoBuilder {
                 }
         }
         catch(Exception ex) {
-            ex.printStackTrace();
+            logger.error("getDiskInfo() " + ex.getMessage());
+            StringWriter errors = new StringWriter();
+            ex.printStackTrace(new PrintWriter(errors));
+            logger.error(errors.toString());
         }
         return list;
     }
+
     private List<Map<String,String>> getNetworkInfo() {
         List<Map<String,String>> list = null;
         try{
@@ -289,10 +332,14 @@ class SysInfoBuilder {
             }
         }
         catch(Exception ex) {
-            ex.printStackTrace();
+            logger.error("getNetworkInfo() " + ex.getMessage());
+            StringWriter errors = new StringWriter();
+            ex.printStackTrace(new PrintWriter(errors));
+            logger.error(errors.toString());
         }
         return list;
     }
+
     private List<Map<String,String>> getCPUInfo() {
         List<Map<String,String>> list = null;
         try{
@@ -364,7 +411,10 @@ class SysInfoBuilder {
 
         }
         catch(Exception ex) {
-            ex.printStackTrace();
+            logger.error("getCPUInfo() " + ex.getMessage());
+            StringWriter errors = new StringWriter();
+            ex.printStackTrace(new PrintWriter(errors));
+            logger.error(errors.toString());
         }
         return list;
     }
@@ -448,7 +498,10 @@ class SysInfoBuilder {
             info.put("nic-map", nicStringBuilder.toString());
         }
         catch(Exception ex) {
-            ex.printStackTrace();
+            logger.error("getNetworkInterfaces() " + ex.getMessage());
+            StringWriter errors = new StringWriter();
+            ex.printStackTrace(new PrintWriter(errors));
+            logger.error(errors.toString());
         }
         return info;
     }

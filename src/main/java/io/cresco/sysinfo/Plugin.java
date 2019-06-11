@@ -39,7 +39,7 @@ public class Plugin implements PluginService {
 
     @Modified
     void modified(BundleContext context, Map<String,Object> map) {
-        System.out.println("Modified Config Map PluginID:" + (String) map.get("pluginID"));
+        logger.info("Modified Config Map PluginID:" + (String) map.get("pluginID"));
     }
 
     @Deactivate

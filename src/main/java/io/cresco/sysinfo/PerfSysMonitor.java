@@ -24,7 +24,7 @@ public class PerfSysMonitor {
         this.plugin = plugin;
         this.logger = plugin.getLogger(PerfSysMonitor.class.getName(),CLogger.Level.Info);
 
-        builder = new SysInfoBuilder();
+        builder = new SysInfoBuilder(plugin);
 
         if(plugin.getConfig().getBooleanParam("benchmark",false)) {
             bmark = new Benchmark();
@@ -35,7 +35,7 @@ public class PerfSysMonitor {
 
     public PerfSysMonitor start() {
         if (this.running) return this;
-        Long interval = plugin.getConfig().getLongParam("perftimer", 5000L);
+        Long interval = plugin.getConfig().getLongParam("perftimer", 10000L);
 
         timer = new Timer();
         timer.scheduleAtFixedRate(new PerfMonitorTask(plugin), 500L, interval);
