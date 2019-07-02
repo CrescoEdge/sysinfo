@@ -103,7 +103,7 @@ class SysInfoBuilder {
             if(!os.getFamily().contains("Raspbian")) {
                 info.put("fs",getFSInfo());
             } else {
-                logger.warn("Disabling FSInfo for Raspbian-based systems.");
+                logger.trace("Disabling FSInfo for Raspbian-based systems.");
             }
             info.put("part",getPartitionInfo());
             info.put("net",getNetworkInfo());
