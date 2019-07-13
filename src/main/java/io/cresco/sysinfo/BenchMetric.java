@@ -32,6 +32,25 @@ public class BenchMetric {
         return cpuComposite;
     }
 
+    public double getCpuFFT() {
+        return cpuFFT;
+    }
+
+    public double getCpuSOR() {
+        return  cpuSOR;
+    }
+
+    public double getCpuMC() {
+        return  cpuMC;
+    }
+
+    public double getCpuSM() {
+        return  cpuSM;
+    }
+
+    public double getCpuLU() {
+        return  cpuLU;
+    }
 
     public String getINodeId() {
         return INodeId;
