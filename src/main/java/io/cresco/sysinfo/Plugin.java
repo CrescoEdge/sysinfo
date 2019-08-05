@@ -16,13 +16,12 @@ import java.util.Map;
         service = { PluginService.class },
         scope=ServiceScope.PROTOTYPE,
         configurationPolicy = ConfigurationPolicy.REQUIRE,
-        servicefactory = true,
         reference=@Reference(name="io.cresco.library.agent.AgentService", service=AgentService.class)
 )
 
 public class Plugin implements PluginService {
 
-    public BundleContext context;
+    private BundleContext context;
     private PluginBuilder pluginBuilder;
     private Executor executor;
     private CLogger logger;
@@ -85,7 +84,10 @@ public class Plugin implements PluginService {
             }
             return true;
         } catch(Exception ex) {
-            ex.printStackTrace();
+            if(logger != null) {
+                logger.error("isStarted() " + ex.getMessage());
+            }
+            //ex.printStackTrace();
             return false;
         }
     }

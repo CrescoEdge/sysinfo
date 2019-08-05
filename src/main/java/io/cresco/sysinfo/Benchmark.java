@@ -1,5 +1,7 @@
 package io.cresco.sysinfo;
 
+import io.cresco.library.plugin.PluginBuilder;
+import io.cresco.library.utilities.CLogger;
 import jnt.scimark2.Random;
 import jnt.scimark2.kernel;
 
@@ -8,9 +10,20 @@ import jnt.scimark2.kernel;
  */
 public class Benchmark {
 
+    private PluginBuilder plugin;
+    private CLogger logger;
+
+    public Benchmark(PluginBuilder plugin) {
+        this.plugin = plugin;
+        this.logger = plugin.getLogger(Benchmark.class.getName(),CLogger.Level.Info);
+    }
+
     public BenchMetric bench() {
+
+
             BenchMetric bm = null;
             String INodeId = "blah";
+
         try {
             long startTime = System.currentTimeMillis();
             double var1 = 2.0D;
@@ -88,7 +101,8 @@ public class Benchmark {
         }
 
         catch(Exception ex) {
-            ex.printStackTrace();
+            logger.error(ex.getMessage());
+            //ex.printStackTrace();
         }
         return bm;
     }

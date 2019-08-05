@@ -27,7 +27,7 @@ public class PerfSysMonitor {
         builder = new SysInfoBuilder(plugin);
 
         if(plugin.getConfig().getBooleanParam("benchmark",false)) {
-            bmark = new Benchmark();
+            bmark = new Benchmark(plugin);
             bm = bmark.bench();
         }
 
@@ -85,7 +85,7 @@ public class PerfSysMonitor {
 
             } catch (Exception ex) {
                 logger.error(ex.getMessage());
-                ex.printStackTrace();
+                //ex.printStackTrace();
             }
 
             /*

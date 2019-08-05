@@ -25,7 +25,7 @@ public class Activator implements BundleActivator
         try {
 
         } catch(Exception ex) {
-            ex.printStackTrace();
+            //ex.printStackTrace();
         }
     }
 
