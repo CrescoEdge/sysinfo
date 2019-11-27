@@ -1,9 +1,17 @@
 package io.cresco.sysinfo;
 
+import com.google.gson.Gson;
 import io.cresco.library.plugin.PluginBuilder;
 import io.cresco.library.utilities.CLogger;
 import jnt.scimark2.Random;
 import jnt.scimark2.kernel;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by vcbumg2 on 1/20/17.
@@ -12,17 +20,54 @@ public class Benchmark {
 
     private PluginBuilder plugin;
     private CLogger logger;
+    private Gson gson;
 
     public Benchmark(PluginBuilder plugin) {
         this.plugin = plugin;
         this.logger = plugin.getLogger(Benchmark.class.getName(),CLogger.Level.Info);
+        gson = new Gson();
+    }
+
+
+    public String getJSON() {
+        String returnString = null;
+
+        try {
+
+            BenchMetric bm = bench();
+            List<Map<String,String>> list = new ArrayList<>();
+
+            Map<String,String> cinfo = new HashMap<>();
+            cinfo.put("plugin_id", bm.getINodeId());
+            cinfo.put("runtime", String.valueOf(bm.getRunTime()));
+            cinfo.put("cpu", String.valueOf(bm.getCPU()));
+            cinfo.put("cpumc", String.valueOf(bm.getCpuMC()));
+            cinfo.put("cpufft", String.valueOf(bm.getCpuFFT()));
+            cinfo.put("cpulu", String.valueOf(bm.getCpuLU()));
+            cinfo.put("cpusm", String.valueOf(bm.getCpuSM()));
+            cinfo.put("cpusor", String.valueOf(bm.getCpuSOR()));
+            list.add(cinfo);
+
+
+            Map<String, List<Map<String,String>>> info = new HashMap<>();
+            info.put("benchmark",list);
+
+            returnString = gson.toJson(info);
+
+            logger.error(returnString);
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        return returnString;
     }
 
     public BenchMetric bench() {
 
 
             BenchMetric bm = null;
-            String INodeId = "blah";
+            String INodeId = plugin.getPluginID();
 
         try {
             long startTime = System.currentTimeMillis();

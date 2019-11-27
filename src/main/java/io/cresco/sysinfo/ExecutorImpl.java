@@ -10,11 +10,13 @@ public class ExecutorImpl implements Executor {
     private PluginBuilder plugin;
     private CLogger logger;
     private SysInfoBuilder builder;
+    private Benchmark bmark;
 
-    public ExecutorImpl(PluginBuilder pluginBuilder, SysInfoBuilder builder) {
+    public ExecutorImpl(PluginBuilder pluginBuilder, SysInfoBuilder builder, Benchmark bmark) {
         this.plugin = pluginBuilder;
         this.logger = plugin.getLogger(ExecutorImpl.class.getName(),CLogger.Level.Info);
         this.builder = builder;
+        this.bmark = bmark;
     }
 
     @Override
@@ -41,6 +43,9 @@ public class ExecutorImpl implements Executor {
 
                 case "getsysinfo":
                     incoming.setCompressedParam("perf",builder.getSysInfoMap());
+                    return incoming;
+                case "getbenchmark":
+                    incoming.setCompressedParam("bench",bmark.getJSON());
                     return incoming;
             }
         }

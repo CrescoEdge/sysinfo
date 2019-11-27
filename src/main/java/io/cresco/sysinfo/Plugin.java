@@ -30,7 +30,6 @@ public class Plugin implements PluginService {
 
     private SysInfoBuilder builder;
     private Benchmark bmark;
-    private BenchMetric bm;
 
 
     @Activate
@@ -72,9 +71,10 @@ public class Plugin implements PluginService {
                 this.logger = pluginBuilder.getLogger(Plugin.class.getName(), CLogger.Level.Info);
 
                 builder = new SysInfoBuilder(pluginBuilder);
+                bmark = new Benchmark(pluginBuilder);
 
 
-                this.executor = new ExecutorImpl(pluginBuilder,builder);
+                this.executor = new ExecutorImpl(pluginBuilder,builder,bmark);
                 pluginBuilder.setExecutor(executor);
 
                 while (!pluginBuilder.getAgentService().getAgentState().isActive()) {
