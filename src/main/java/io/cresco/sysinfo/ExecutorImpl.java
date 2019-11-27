@@ -8,11 +8,13 @@ import io.cresco.library.utilities.CLogger;
 public class ExecutorImpl implements Executor {
 
     private PluginBuilder plugin;
-    CLogger logger;
+    private CLogger logger;
+    private SysInfoBuilder builder;
 
-    public ExecutorImpl(PluginBuilder pluginBuilder) {
+    public ExecutorImpl(PluginBuilder pluginBuilder, SysInfoBuilder builder) {
         this.plugin = pluginBuilder;
-        logger = plugin.getLogger(ExecutorImpl.class.getName(),CLogger.Level.Info);
+        this.logger = plugin.getLogger(ExecutorImpl.class.getName(),CLogger.Level.Info);
+        this.builder = builder;
     }
 
     @Override
@@ -31,7 +33,19 @@ public class ExecutorImpl implements Executor {
     public MsgEvent executeINFO(MsgEvent incoming) { return null; }
     @Override
     public MsgEvent executeEXEC(MsgEvent incoming) {
+
+        logger.debug("Processing Exec message : " + incoming.getParams());
+
+        if(incoming.getParams().containsKey("action")) {
+            switch (incoming.getParam("action")) {
+
+                case "getsysinfo":
+                    incoming.setCompressedParam("perf",builder.getSysInfoMap());
+                    return incoming;
+            }
+        }
         return null;
+
     }
     @Override
     public MsgEvent executeWATCHDOG(MsgEvent incoming) {

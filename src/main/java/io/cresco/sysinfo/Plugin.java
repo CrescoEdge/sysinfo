@@ -28,6 +28,11 @@ public class Plugin implements PluginService {
     private Map<String,Object> map;
     private PerfSysMonitor perfSysMonitor;
 
+    private SysInfoBuilder builder;
+    private Benchmark bmark;
+    private BenchMetric bm;
+
+
     @Activate
     void activate(BundleContext context, Map<String,Object> map) {
 
@@ -65,7 +70,11 @@ public class Plugin implements PluginService {
             if(pluginBuilder == null) {
                 pluginBuilder = new PluginBuilder(this.getClass().getName(), context, map);
                 this.logger = pluginBuilder.getLogger(Plugin.class.getName(), CLogger.Level.Info);
-                this.executor = new ExecutorImpl(pluginBuilder);
+
+                builder = new SysInfoBuilder(pluginBuilder);
+
+
+                this.executor = new ExecutorImpl(pluginBuilder,builder);
                 pluginBuilder.setExecutor(executor);
 
                 while (!pluginBuilder.getAgentService().getAgentState().isActive()) {
@@ -77,9 +86,11 @@ public class Plugin implements PluginService {
                 //set plugin active
                 pluginBuilder.setIsActive(true);
 
-                perfSysMonitor = new PerfSysMonitor(pluginBuilder);
-                perfSysMonitor.start();
-                logger.info("Performance System monitoring initialized");
+                if (pluginBuilder.getConfig().getBooleanParam("enable_perf", false)) {
+                    perfSysMonitor = new PerfSysMonitor(pluginBuilder, builder);
+                    perfSysMonitor.start();
+                    logger.info("Performance System monitoring initialized");
+                }
 
             }
             return true;

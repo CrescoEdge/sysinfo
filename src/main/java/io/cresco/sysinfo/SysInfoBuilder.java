@@ -205,7 +205,7 @@ class SysInfoBuilder {
             }
             //info.put("sys-uptime", FormatUtil.formatElapsedSecs(hardwareAbstractionLayer.getProcessor().getSystemUptime()));
             try {
-                info.put("sys-uptime", String.valueOf(hardwareAbstractionLayer.getProcessor().getSystemUptime()));
+                info.put("sys-uptime", String.valueOf(os.getSystemUptime()));
             } catch (Exception e) {
                 info.put("sys-uptime", "unknown");
             }
@@ -232,8 +232,8 @@ class SysInfoBuilder {
             Map<String,String> info = new HashMap<>();
             info.put("memory-total", String.valueOf(hardwareAbstractionLayer.getMemory().getTotal()));
             info.put("memory-available", String.valueOf(hardwareAbstractionLayer.getMemory().getAvailable()));
-            info.put("swap-total", String.valueOf(hardwareAbstractionLayer.getMemory().getSwapTotal()));
-            info.put("swap-used", String.valueOf(hardwareAbstractionLayer.getMemory().getSwapUsed()));
+            info.put("swap-total", String.valueOf(hardwareAbstractionLayer.getMemory().getVirtualMemory().getSwapTotal()));
+            info.put("swap-used", String.valueOf(hardwareAbstractionLayer.getMemory().getVirtualMemory().getSwapUsed()));
             list.add(info);
 
         }

@@ -20,11 +20,11 @@ public class PerfSysMonitor {
     private CLogger logger;
 
 
-    public PerfSysMonitor(PluginBuilder plugin) {
+    public PerfSysMonitor(PluginBuilder plugin, SysInfoBuilder builder) {
         this.plugin = plugin;
         this.logger = plugin.getLogger(PerfSysMonitor.class.getName(),CLogger.Level.Info);
+        this.builder = builder;
 
-        builder = new SysInfoBuilder(plugin);
 
         if(plugin.getConfig().getBooleanParam("benchmark",false)) {
             bmark = new Benchmark(plugin);
@@ -87,19 +87,6 @@ public class PerfSysMonitor {
                 logger.error(ex.getMessage());
                 //ex.printStackTrace();
             }
-
-            /*
-            MsgEvent tick = plugin.getKPIMsgEvent();
-            tick.setParam("resource_id",plugin.getConfig().getStringParam("resource_id","sysinfo_resource"));
-            tick.setParam("inode_id",plugin.getConfig().getStringParam("inode_id","sysinfo_inode"));
-
-            if(plugin.getConfig().getBooleanParam("benchmark",false)) {
-                tick.setParam("benchmark_cpu_composite",String.valueOf((int)bm.getCPU()));
-            }
-            tick.setCompressedParam("perf",builder.getSysInfoMap());
-            plugin.msgOut(tick);
-            */
-
 
         }
     }
