@@ -127,9 +127,7 @@ class SysInfoBuilder {
         try{
             list = new ArrayList<>();
 
-           //OSProcess[] p = os.getProcesses(0, OperatingSystem.ProcessSort.CPU);
-            List<OSProcess> p = os.getProcesses();
-
+            OSProcess[] p = os.getProcesses(0, OperatingSystem.ProcessSort.CPU);
             for(OSProcess op : p) {
                 Map<String,String> info = new HashMap<>();
                 info.put("name",op.getName());
@@ -159,7 +157,7 @@ class SysInfoBuilder {
 
             //OSFileStore[] fsArray = hardwareAbstractionLayer.getFileSystem().getFileStores();
 
-            List<OSFileStore> fsArray = os.getFileSystem().getFileStores();
+            OSFileStore[] fsArray = os.getFileSystem().getFileStores();
 
             for (OSFileStore fs : fsArray) {
                 Map<String,String> info = new HashMap<>();
@@ -189,7 +187,7 @@ class SysInfoBuilder {
             list = new ArrayList<>();
             Map<String,String> info = new HashMap<>();
             try {
-                info.put("sys-os", os.getVersionInfo().toString());
+                info.put("sys-os", os.getVersion().toString());
             } catch (Exception e) {
                 info.put("sys-os", "unknown");
             }
@@ -254,7 +252,7 @@ class SysInfoBuilder {
         try{
             list = new ArrayList<>();
 
-            List<HWDiskStore> diskArray = hardwareAbstractionLayer.getDiskStores();
+            HWDiskStore[] diskArray = hardwareAbstractionLayer.getDiskStores();
             for (HWDiskStore disk : diskArray) {
 
                 for(HWPartition part : disk.getPartitions()) {
@@ -282,22 +280,22 @@ class SysInfoBuilder {
         List<Map<String,String>> list = null;
         try{
             list = new ArrayList<>();
-            List<HWDiskStore> diskArray = hardwareAbstractionLayer.getDiskStores();
+            HWDiskStore[] diskArray = hardwareAbstractionLayer.getDiskStores();
 
-                for (HWDiskStore disk : diskArray) {
-                    Map<String, String> info = new HashMap<>();
+            for (HWDiskStore disk : diskArray) {
+                Map<String, String> info = new HashMap<>();
 
-                    info.put("disk-size", String.valueOf(disk.getSize()));
-                    info.put("disk-model", String.valueOf(disk.getModel()));
-                    info.put("disk-name", String.valueOf(disk.getName()));
-                    info.put("disk-readbytes", String.valueOf(disk.getReadBytes()));
-                    info.put("disk-reads", String.valueOf(disk.getReads()));
-                    info.put("disk-writebytes", String.valueOf(disk.getWriteBytes()));
-                    info.put("disk-writes", String.valueOf(disk.getWrites()));
-                    info.put("disk-transfertime", String.valueOf(disk.getTransferTime()));
+                info.put("disk-size", String.valueOf(disk.getSize()));
+                info.put("disk-model", String.valueOf(disk.getModel()));
+                info.put("disk-name", String.valueOf(disk.getName()));
+                info.put("disk-readbytes", String.valueOf(disk.getReadBytes()));
+                info.put("disk-reads", String.valueOf(disk.getReads()));
+                info.put("disk-writebytes", String.valueOf(disk.getWriteBytes()));
+                info.put("disk-writes", String.valueOf(disk.getWrites()));
+                info.put("disk-transfertime", String.valueOf(disk.getTransferTime()));
 
-                    list.add(info);
-                }
+                list.add(info);
+            }
         }
         catch(Exception ex) {
             logger.error("getDiskInfo() " + ex.getMessage());
@@ -313,7 +311,7 @@ class SysInfoBuilder {
         try{
             list = new ArrayList<>();
 
-            List<NetworkIF> networks = hardwareAbstractionLayer.getNetworkIFs();
+            NetworkIF[] networks = hardwareAbstractionLayer.getNetworkIFs();
             for (NetworkIF net : networks) {
                 Map<String,String> info = new HashMap<>();
 
@@ -348,14 +346,12 @@ class SysInfoBuilder {
             list = new ArrayList<>();
             Map<String,String> info = new HashMap<>();
 
-            /*
             try {
                 info.put("is64bit", String.valueOf(hardwareAbstractionLayer.getProcessor().isCpu64bit()));
             }
             catch (Exception ex) {
                 info.put("is64bit", "unknown");
             }
-             */
             try {
                 info.put("cpu-physical-count", String.valueOf(hardwareAbstractionLayer.getProcessor().getPhysicalProcessorCount()));
             }
@@ -375,13 +371,13 @@ class SysInfoBuilder {
                 info.put("cpu-summary", "unknown");
             }
             try {
-                info.put("cpu-ident", hardwareAbstractionLayer.getProcessor().getProcessorIdentifier().getIdentifier());
+                info.put("cpu-ident", hardwareAbstractionLayer.getProcessor().getIdentifier());
             }
             catch (Exception ex) {
                 info.put("cpu-ident", "unknown");
             }
             try {
-                info.put("cpu-id",hardwareAbstractionLayer.getProcessor().getProcessorIdentifier().getProcessorID());
+                info.put("cpu-id",hardwareAbstractionLayer.getProcessor().getProcessorID());
             }
             catch(Exception ex) {
                 info.put("cpu-id","unknown");
