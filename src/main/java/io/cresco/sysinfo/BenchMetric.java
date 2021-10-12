@@ -20,7 +20,6 @@ public class BenchMetric {
         this.cpuMC = cpuMC;
         this.cpuSM = cpuSM;
         this.cpuLU = cpuLU;
-
     }
 
     public long getRunTime() {
