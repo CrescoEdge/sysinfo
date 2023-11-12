@@ -82,7 +82,6 @@ public class Plugin implements PluginService {
                 builder = new SysInfoBuilder(pluginBuilder);
                 bmark = new Benchmark(pluginBuilder);
 
-
                 this.executor = new ExecutorImpl(pluginBuilder,builder,bmark);
                 pluginBuilder.setExecutor(executor);
 
