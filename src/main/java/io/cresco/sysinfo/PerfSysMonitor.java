@@ -1,11 +1,11 @@
 package io.cresco.sysinfo;
 
+import jakarta.jms.*;
 
 import io.cresco.library.data.TopicType;
 import io.cresco.library.plugin.PluginBuilder;
 import io.cresco.library.utilities.CLogger;
 
-import javax.jms.MapMessage;
 import java.util.Timer;
 import java.util.TimerTask;
 
