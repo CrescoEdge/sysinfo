@@ -57,7 +57,7 @@ public class Benchmark {
             logger.error(returnString);
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            logger.error("getJSON() Error", ex);
         }
 
         return returnString;

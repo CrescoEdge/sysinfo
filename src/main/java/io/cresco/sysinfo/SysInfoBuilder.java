@@ -12,8 +12,6 @@ import oshi.software.os.OSFileStore;
 import oshi.software.os.OSProcess;
 import oshi.software.os.OperatingSystem;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
@@ -67,11 +65,7 @@ class SysInfoBuilder {
             jsonInfo = gson.toJson(info);
 
         } catch (Exception ex) {
-
-            logger.error("SysInfoBuilder : getSysInfoMap : Error : " + ex.getMessage());
-            StringWriter errors = new StringWriter();
-            ex.printStackTrace(new PrintWriter(errors));
-            logger.error(errors.toString());
+            logger.error("SysInfoBuilder : getSysInfoMap : Error : " + ex.getMessage(), ex);
         }
         return jsonInfo;
     }
@@ -114,10 +108,7 @@ class SysInfoBuilder {
             info.clear();
 
         } catch (Exception e) {
-            logger.error("SysInfoBuilder : getSysInfoMap : Error : " + e.getMessage());
-            StringWriter errors = new StringWriter();
-            e.printStackTrace(new PrintWriter(errors));
-            logger.error(errors.toString());
+            logger.error("SysInfoBuilder : getSysInfoMap : Error : " + e.getMessage(), e);
         }
         return jsonInfo;
     }
@@ -142,10 +133,7 @@ class SysInfoBuilder {
             }
         }
         catch(Exception ex) {
-            logger.error("getProcessInfo() " + ex.getMessage());
-            StringWriter errors = new StringWriter();
-            ex.printStackTrace(new PrintWriter(errors));
-            logger.error(errors.toString());
+            logger.error("getProcessInfo() " + ex.getMessage(), ex);
         }
         return list;
     }
@@ -173,10 +161,7 @@ class SysInfoBuilder {
             }
         }
         catch(Exception ex) {
-            logger.error("getFSInfo: " + ex.getMessage());
-            StringWriter errors = new StringWriter();
-            ex.printStackTrace(new PrintWriter(errors));
-            logger.error(errors.toString());
+            logger.error("getFSInfo: " + ex.getMessage(), ex);
         }
         return list;
     }
@@ -217,10 +202,7 @@ class SysInfoBuilder {
             list.add(info);
         }
         catch(Exception ex) {
-            logger.error("getOSInfo() " + ex.getMessage());
-            StringWriter errors = new StringWriter();
-            ex.printStackTrace(new PrintWriter(errors));
-            logger.error(errors.toString());
+            logger.error("getOSInfo() " + ex.getMessage(), ex);
         }
         return list;
     }
@@ -238,11 +220,7 @@ class SysInfoBuilder {
 
         }
         catch(Exception ex) {
-            logger.error("getMemoryInfo() " + ex.getMessage());
-            StringWriter errors = new StringWriter();
-            ex.printStackTrace(new PrintWriter(errors));
-            logger.error(errors.toString());
-
+            logger.error("getMemoryInfo() " + ex.getMessage(), ex);
         }
         return list;
     }
@@ -267,10 +245,7 @@ class SysInfoBuilder {
 
         }
         catch(Exception ex) {
-            logger.error("getPartitionInfo() " + ex.getMessage());
-            StringWriter errors = new StringWriter();
-            ex.printStackTrace(new PrintWriter(errors));
-            logger.error(errors.toString());
+            logger.error("getPartitionInfo() " + ex.getMessage(), ex);
         }
         return list;
     }
@@ -298,10 +273,7 @@ class SysInfoBuilder {
             }
         }
         catch(Exception ex) {
-            logger.error("getDiskInfo() " + ex.getMessage());
-            StringWriter errors = new StringWriter();
-            ex.printStackTrace(new PrintWriter(errors));
-            logger.error(errors.toString());
+            logger.error("getDiskInfo() " + ex.getMessage(), ex);
         }
         return list;
     }
@@ -332,10 +304,7 @@ class SysInfoBuilder {
             }
         }
         catch(Exception ex) {
-            logger.error("getNetworkInfo() " + ex.getMessage());
-            StringWriter errors = new StringWriter();
-            ex.printStackTrace(new PrintWriter(errors));
-            logger.error(errors.toString());
+            logger.error("getNetworkInfo() " + ex.getMessage(), ex);
         }
         return list;
     }
@@ -411,10 +380,7 @@ class SysInfoBuilder {
 
         }
         catch(Exception ex) {
-            logger.error("getCPUInfo() " + ex.getMessage());
-            StringWriter errors = new StringWriter();
-            ex.printStackTrace(new PrintWriter(errors));
-            logger.error(errors.toString());
+            logger.error("getCPUInfo() " + ex.getMessage(), ex);
         }
         return list;
     }
@@ -474,7 +440,7 @@ class SysInfoBuilder {
                         InetAddress address = interfaceAddress.getAddress();
                         interfaceAddressStringBuilder.append(address.getHostAddress()).append(",");
                     } catch (Exception e) {
-                        System.out.println("SysInfoBuilder : Constructor : nicLoop : addrLoop : Error : " + e.getMessage());
+                        logger.error("SysInfoBuilder : Constructor : nicLoop : addrLoop : Error : " + e.getMessage());
                     }
                 }
                 if (interfaceAddressStringBuilder.length() == 0)
@@ -498,10 +464,7 @@ class SysInfoBuilder {
             info.put("nic-map", nicStringBuilder.toString());
         }
         catch(Exception ex) {
-            logger.error("getNetworkInterfaces() " + ex.getMessage());
-            StringWriter errors = new StringWriter();
-            ex.printStackTrace(new PrintWriter(errors));
-            logger.error(errors.toString());
+            logger.error("getNetworkInterfaces() " + ex.getMessage(), ex);
         }
         return info;
     }
