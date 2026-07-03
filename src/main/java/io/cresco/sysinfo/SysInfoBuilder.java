@@ -167,6 +167,25 @@ class SysInfoBuilder {
                 metricEngine.setGauge("disk.available", "usable filesystem space (bytes)", "disk", CMetric.MeasureClass.GAUGE_LONG);
                 metricEngine.setGauge("net.bytes.sent", "network bytes sent (all interfaces)", "network", CMetric.MeasureClass.GAUGE_LONG);
                 metricEngine.setGauge("net.bytes.recv", "network bytes received (all interfaces)", "network", CMetric.MeasureClass.GAUGE_LONG);
+
+                // New measurements enabled by the OSHI 7.x upgrade (absent in 4.2.1):
+                metricEngine.setGauge("system.load.average.1m", "1-minute system load average (-1 if unsupported)", "processor", CMetric.MeasureClass.GAUGE_DOUBLE);
+                metricEngine.setGauge("cpu.context.switches", "CPU context switches since boot", "processor", CMetric.MeasureClass.GAUGE_LONG);
+                metricEngine.setGauge("cpu.interrupts", "CPU interrupts since boot", "processor", CMetric.MeasureClass.GAUGE_LONG);
+                metricEngine.setGauge("memory.swap.total", "total swap (bytes)", "memory", CMetric.MeasureClass.GAUGE_LONG);
+                metricEngine.setGauge("memory.swap.used", "used swap (bytes)", "memory", CMetric.MeasureClass.GAUGE_LONG);
+                metricEngine.setGauge("disk.read.bytes", "bytes read across all disks", "disk", CMetric.MeasureClass.GAUGE_LONG);
+                metricEngine.setGauge("disk.write.bytes", "bytes written across all disks", "disk", CMetric.MeasureClass.GAUGE_LONG);
+                metricEngine.setGauge("net.packets.sent", "network packets sent (all interfaces)", "network", CMetric.MeasureClass.GAUGE_LONG);
+                metricEngine.setGauge("net.packets.recv", "network packets received (all interfaces)", "network", CMetric.MeasureClass.GAUGE_LONG);
+                metricEngine.setGauge("sensor.cpu.temperature", "CPU temperature (C, 0 if unavailable)", "sensors", CMetric.MeasureClass.GAUGE_DOUBLE);
+                metricEngine.setGauge("sensor.cpu.voltage", "CPU voltage (V, 0 if unavailable)", "sensors", CMetric.MeasureClass.GAUGE_DOUBLE);
+                metricEngine.setGauge("sensor.fan.max.rpm", "max fan speed (RPM, 0 if unavailable)", "sensors", CMetric.MeasureClass.GAUGE_INT);
+                metricEngine.setGauge("power.remaining.percent", "battery/power remaining (0..100, -1 if none)", "power", CMetric.MeasureClass.GAUGE_DOUBLE);
+                metricEngine.setGauge("power.remaining.seconds", "estimated power time remaining (s, -1 if unknown/on AC)", "power", CMetric.MeasureClass.GAUGE_DOUBLE);
+                metricEngine.setGauge("system.uptime.seconds", "OS uptime (seconds)", "system", CMetric.MeasureClass.GAUGE_LONG);
+                metricEngine.setGauge("system.process.count", "running process count", "system", CMetric.MeasureClass.GAUGE_INT);
+                metricEngine.setGauge("system.thread.count", "running thread count", "system", CMetric.MeasureClass.GAUGE_INT);
             }
 
             // Best-effort OSHI reads. EVERY hardware access is individually guarded with Throwable —
@@ -187,11 +206,22 @@ class SysInfoBuilder {
                     prevTicks = ticks;
                     metricEngine.updateDoubleGauge("system.cpu.load", Double.isNaN(load) ? 0.0d : load);
                 } catch (Throwable ignore) { /* native cpu-load unavailable */ }
+                try { double la = cpu.getSystemLoadAverage(1)[0]; metricEngine.updateDoubleGauge("system.load.average.1m", Double.isNaN(la) ? -1.0d : la); } catch (Throwable ignore) {}
+                try { metricEngine.updateLongGauge("cpu.context.switches", cpu.getContextSwitches()); } catch (Throwable ignore) {}
+                try { metricEngine.updateLongGauge("cpu.interrupts", cpu.getInterrupts()); } catch (Throwable ignore) {}
             } catch (Throwable ignore) { /* no processor handle on this platform */ }
 
             try {
-                metricEngine.updateLongGauge("memory.total", hardwareAbstractionLayer.getMemory().getTotal());
-                metricEngine.updateLongGauge("memory.available", hardwareAbstractionLayer.getMemory().getAvailable());
+                var mem = hardwareAbstractionLayer.getMemory();
+                try {
+                    metricEngine.updateLongGauge("memory.total", mem.getTotal());
+                    metricEngine.updateLongGauge("memory.available", mem.getAvailable());
+                } catch (Throwable ignore) {}
+                try {
+                    var vm = mem.getVirtualMemory();
+                    metricEngine.updateLongGauge("memory.swap.total", vm.getSwapTotal());
+                    metricEngine.updateLongGauge("memory.swap.used", vm.getSwapUsed());
+                } catch (Throwable ignore) {}
             } catch (Throwable ignore) {}
 
             try {
@@ -205,14 +235,59 @@ class SysInfoBuilder {
             } catch (Throwable ignore) { /* FS enumeration unavailable; skip */ }
 
             try {
-                long netSent = 0L, netRecv = 0L;
+                long diskRead = 0L, diskWrite = 0L;
+                for (HWDiskStore disk : hardwareAbstractionLayer.getDiskStores()) {
+                    diskRead += disk.getReadBytes();
+                    diskWrite += disk.getWriteBytes();
+                }
+                metricEngine.updateLongGauge("disk.read.bytes", diskRead);
+                metricEngine.updateLongGauge("disk.write.bytes", diskWrite);
+            } catch (Throwable ignore) {}
+
+            try {
+                long netSent = 0L, netRecv = 0L, pktSent = 0L, pktRecv = 0L;
                 for (NetworkIF net : hardwareAbstractionLayer.getNetworkIFs()) {
                     netSent += net.getBytesSent();
                     netRecv += net.getBytesRecv();
+                    pktSent += net.getPacketsSent();
+                    pktRecv += net.getPacketsRecv();
                 }
                 metricEngine.updateLongGauge("net.bytes.sent", netSent);
                 metricEngine.updateLongGauge("net.bytes.recv", netRecv);
+                metricEngine.updateLongGauge("net.packets.sent", pktSent);
+                metricEngine.updateLongGauge("net.packets.recv", pktRecv);
             } catch (Throwable ignore) {}
+
+            // Sensors (OSHI 7.x): CPU temperature / voltage / fans — key for thermal-aware edge nodes.
+            try {
+                var sensors = hardwareAbstractionLayer.getSensors();
+                try { metricEngine.updateDoubleGauge("sensor.cpu.temperature", sensors.getCpuTemperature()); } catch (Throwable ignore) {}
+                try { metricEngine.updateDoubleGauge("sensor.cpu.voltage", sensors.getCpuVoltage()); } catch (Throwable ignore) {}
+                try {
+                    int maxFan = 0;
+                    for (int rpm : sensors.getFanSpeeds()) { if (rpm > maxFan) { maxFan = rpm; } }
+                    metricEngine.updateIntGauge("sensor.fan.max.rpm", maxFan);
+                } catch (Throwable ignore) {}
+            } catch (Throwable ignore) {}
+
+            // Power sources (OSHI 7.x): battery remaining / time — for battery-powered edge devices.
+            try {
+                double pct = -1.0d, secs = -1.0d;
+                var sources = hardwareAbstractionLayer.getPowerSources();
+                if (sources != null && !sources.isEmpty()) {
+                    double sum = 0.0d; int n = 0;
+                    for (var ps : sources) { try { sum += ps.getRemainingCapacityPercent(); n++; } catch (Throwable ignore) {} }
+                    if (n > 0) { pct = (sum / n) * 100.0d; }
+                    try { secs = sources.get(0).getTimeRemainingEstimated(); } catch (Throwable ignore) {}
+                }
+                metricEngine.updateDoubleGauge("power.remaining.percent", pct);
+                metricEngine.updateDoubleGauge("power.remaining.seconds", secs);
+            } catch (Throwable ignore) {}
+
+            // System (OSHI 7.x): uptime, process/thread counts.
+            try { metricEngine.updateLongGauge("system.uptime.seconds", os.getSystemUptime()); } catch (Throwable ignore) {}
+            try { metricEngine.updateIntGauge("system.process.count", os.getProcessCount()); } catch (Throwable ignore) {}
+            try { metricEngine.updateIntGauge("system.thread.count", os.getThreadCount()); } catch (Throwable ignore) {}
 
             // ALWAYS emit the registered gauges (0 where OSHI couldn't populate them).
             String json = gson.toJson(metricEngine.getAllMetrics());
@@ -230,7 +305,7 @@ class SysInfoBuilder {
         try{
             list = new ArrayList<>();
 
-            OSProcess[] p = os.getProcesses(0, OperatingSystem.ProcessSort.CPU);
+            List<OSProcess> p = os.getProcesses(null, OperatingSystem.ProcessSorting.CPU_DESC, 0);
             for(OSProcess op : p) {
                 Map<String,String> info = new HashMap<>();
                 info.put("name",op.getName());
@@ -255,9 +330,7 @@ class SysInfoBuilder {
         try{
             list = new ArrayList<>();
 
-            //OSFileStore[] fsArray = hardwareAbstractionLayer.getFileSystem().getFileStores();
-
-            OSFileStore[] fsArray = os.getFileSystem().getFileStores();
+            List<OSFileStore> fsArray = os.getFileSystem().getFileStores();
 
             for (OSFileStore fs : fsArray) {
                 Map<String,String> info = new HashMap<>();
@@ -284,7 +357,7 @@ class SysInfoBuilder {
             list = new ArrayList<>();
             Map<String,String> info = new HashMap<>();
             try {
-                info.put("sys-os", os.getVersion().toString());
+                info.put("sys-os", os.getVersionInfo().toString());
             } catch (Exception e) {
                 info.put("sys-os", "unknown");
             }
@@ -342,7 +415,7 @@ class SysInfoBuilder {
         try{
             list = new ArrayList<>();
 
-            HWDiskStore[] diskArray = hardwareAbstractionLayer.getDiskStores();
+            List<HWDiskStore> diskArray = hardwareAbstractionLayer.getDiskStores();
             for (HWDiskStore disk : diskArray) {
 
                 for(HWPartition part : disk.getPartitions()) {
@@ -367,7 +440,7 @@ class SysInfoBuilder {
         List<Map<String,String>> list = null;
         try{
             list = new ArrayList<>();
-            HWDiskStore[] diskArray = hardwareAbstractionLayer.getDiskStores();
+            List<HWDiskStore> diskArray = hardwareAbstractionLayer.getDiskStores();
 
             for (HWDiskStore disk : diskArray) {
                 Map<String, String> info = new HashMap<>();
@@ -395,7 +468,7 @@ class SysInfoBuilder {
         try{
             list = new ArrayList<>();
 
-            NetworkIF[] networks = hardwareAbstractionLayer.getNetworkIFs();
+            List<NetworkIF> networks = hardwareAbstractionLayer.getNetworkIFs();
             for (NetworkIF net : networks) {
                 Map<String,String> info = new HashMap<>();
 
@@ -428,7 +501,7 @@ class SysInfoBuilder {
             Map<String,String> info = new HashMap<>();
 
             try {
-                info.put("is64bit", String.valueOf(hardwareAbstractionLayer.getProcessor().isCpu64bit()));
+                info.put("is64bit", String.valueOf(hardwareAbstractionLayer.getProcessor().getProcessorIdentifier().isCpu64bit()));
             }
             catch (Exception ex) {
                 info.put("is64bit", "unknown");
@@ -452,13 +525,13 @@ class SysInfoBuilder {
                 info.put("cpu-summary", "unknown");
             }
             try {
-                info.put("cpu-ident", hardwareAbstractionLayer.getProcessor().getIdentifier());
+                info.put("cpu-ident", hardwareAbstractionLayer.getProcessor().getProcessorIdentifier().getIdentifier());
             }
             catch (Exception ex) {
                 info.put("cpu-ident", "unknown");
             }
             try {
-                info.put("cpu-id",hardwareAbstractionLayer.getProcessor().getProcessorID());
+                info.put("cpu-id",hardwareAbstractionLayer.getProcessor().getProcessorIdentifier().getProcessorID());
             }
             catch(Exception ex) {
                 info.put("cpu-id","unknown");

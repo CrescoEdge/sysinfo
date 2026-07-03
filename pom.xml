@@ -45,9 +45,11 @@
 
     <properties>
         <!-- jdk, encoding, plugin & OSGi API / gson versions inherited from cresco-parent -->
-        <oshi.version>4.2.1</oshi.version>
+        <!-- OSHI 7.x pulls JNA 5.19.1 (jna-jpms), which ships arm64 macOS/Linux native libs; the old
+             4.2.1 + JNA 5.5.0 had no arm64 native lib, so hardware calls threw UnsatisfiedLinkError. -->
+        <oshi.version>7.3.2</oshi.version>
         <scimark.version>2.0</scimark.version>
-        <jna.version>5.5.0</jna.version>
+        <jna.version>5.19.1</jna.version>
     </properties>
 
     <dependencies>
@@ -104,15 +106,17 @@
             </exclusions>
         </dependency>
 
+        <!-- OSHI 7.x uses the JPMS-packaged JNA artifacts (same native libs, incl. arm64). Declared
+             explicitly so they are on the compile/runtime classpath and get embedded in the bundle. -->
         <dependency>
             <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
+            <artifactId>jna-jpms</artifactId>
             <version>${jna.version}</version>
         </dependency>
 
         <dependency>
             <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna-platform</artifactId>
+            <artifactId>jna-platform-jpms</artifactId>
             <version>${jna.version}</version>
         </dependency>
 
