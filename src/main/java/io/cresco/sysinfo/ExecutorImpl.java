@@ -47,6 +47,11 @@ public class ExecutorImpl implements Executor {
                 case "getbenchmark":
                     incoming.setCompressedParam("bench",bmark.getJSON());
                     return incoming;
+                case "getmetrics":
+                    // B-2 unified metrics: cpu/mem/disk/network as MeasurementEngine gauges
+                    incoming.setParam("metrics", builder.getMetricsJson());
+                    incoming.setParam("status", "10");
+                    return incoming;
             }
         }
         return null;

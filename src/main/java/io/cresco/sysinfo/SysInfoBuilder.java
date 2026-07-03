@@ -1,6 +1,8 @@
 package io.cresco.sysinfo;
 
 import com.google.gson.Gson;
+import io.cresco.library.metrics.CMetric;
+import io.cresco.library.metrics.MeasurementEngine;
 import io.cresco.library.plugin.PluginBuilder;
 import io.cresco.library.utilities.CLogger;
 import oshi.SystemInfo;
@@ -24,10 +26,26 @@ class SysInfoBuilder {
     private Gson gson;
     private CLogger logger;
 
+    // B-2 metrics unification: expose the same OSHI telemetry as getsysinfo, but as MeasurementEngine
+    // gauges so sysinfo participates in the unified getmetrics/getmetricinventory view. getsysinfo stays
+    // for back-compat. prevTicks lets us report CPU load since the last read without blocking.
+    private final PluginBuilder plugin;
+    private MeasurementEngine metricEngine;
+    private long[] prevTicks;
+    // OSHI NIC/filesystem enumeration costs ~2s+ EACH call, which would blow the metric-inventory RPC
+    // budget. Cache the serialized result for a short TTL so repeated getmetrics reads are instant.
+    private volatile String cachedMetricsJson;
+    private volatile long cachedMetricsAt;
+
     public SysInfoBuilder(PluginBuilder plugin) {
         gson = new Gson();
+        this.plugin = plugin;
 
         this.logger = plugin.getLogger(SysInfoBuilder.class.getName(),CLogger.Level.Info);
+        // Pre-warm the metrics cache off the startup path so the first getmetrics RPC hits a warm cache.
+        Thread warm = new Thread(() -> { try { getMetricsJson(); } catch (Throwable ignore) {} }, "sysinfo-metrics-prewarm");
+        warm.setDaemon(true);
+        warm.start();
 
         /*
         System.setProperty("java.net.preferIPv4Stack", "true");
@@ -111,6 +129,100 @@ class SysInfoBuilder {
             logger.error("SysInfoBuilder : getSysInfoMap : Error : " + e.getMessage(), e);
         }
         return jsonInfo;
+    }
+
+    /**
+     * B-2 unified metrics: the same CPU/memory/disk/network telemetry as getsysinfo, exposed as
+     * MeasurementEngine gauges and serialized via the standard getAllMetrics() shape so sysinfo folds
+     * into the fabric-wide getmetricinventory. Non-blocking: CPU load is computed from tick deltas
+     * across calls. Returns {"processor":[...],"memory":[...],"disk":[...],"network":[...]}.
+     */
+    public String getMetricsJson() {
+        long ttl = plugin.getConfig().getIntegerParam("sysinfo_metrics_ttl_ms", 5000);
+        String cached = cachedMetricsJson;
+        if (cached != null && (System.currentTimeMillis() - cachedMetricsAt) < ttl) {
+            return cached;
+        }
+        return refreshMetricsJson();
+    }
+
+    private synchronized String refreshMetricsJson() {
+        long ttl = plugin.getConfig().getIntegerParam("sysinfo_metrics_ttl_ms", 5000);
+        if (cachedMetricsJson != null && (System.currentTimeMillis() - cachedMetricsAt) < ttl) {
+            return cachedMetricsJson; // another thread just refreshed
+        }
+        try {
+            // Register the gauges FIRST — before any OSHI/JNA access. OSHI hardware calls go through a
+            // native lib that can fail to load (e.g. arch-mismatched JNA) and raise an Error; if that
+            // happened before registration, getAllMetrics() would return nothing and sysinfo would vanish
+            // from the unified inventory. Registering first guarantees the processor/memory/disk/network
+            // groups always appear (real values where OSHI works, zeros where the platform can't provide).
+            if (metricEngine == null) {
+                metricEngine = new MeasurementEngine(plugin);
+                metricEngine.setGauge("system.cpu.count", "logical CPU count", "processor", CMetric.MeasureClass.GAUGE_INT);
+                metricEngine.setGauge("system.cpu.load", "system CPU load since last read (0..1)", "processor", CMetric.MeasureClass.GAUGE_DOUBLE);
+                metricEngine.setGauge("memory.total", "total physical memory (bytes)", "memory", CMetric.MeasureClass.GAUGE_LONG);
+                metricEngine.setGauge("memory.available", "available physical memory (bytes)", "memory", CMetric.MeasureClass.GAUGE_LONG);
+                metricEngine.setGauge("disk.total", "total filesystem space (bytes)", "disk", CMetric.MeasureClass.GAUGE_LONG);
+                metricEngine.setGauge("disk.available", "usable filesystem space (bytes)", "disk", CMetric.MeasureClass.GAUGE_LONG);
+                metricEngine.setGauge("net.bytes.sent", "network bytes sent (all interfaces)", "network", CMetric.MeasureClass.GAUGE_LONG);
+                metricEngine.setGauge("net.bytes.recv", "network bytes received (all interfaces)", "network", CMetric.MeasureClass.GAUGE_LONG);
+            }
+
+            // Best-effort OSHI reads. EVERY hardware access is individually guarded with Throwable —
+            // even obtaining the processor/memory handles can raise NoClassDefFoundError/UnsatisfiedLinkError
+            // when OSHI's JNA native lib can't load (e.g. arch-mismatched). Whatever fails simply leaves its
+            // gauge at 0; the registered gauges are ALWAYS emitted below, so sysinfo never vanishes from the
+            // unified inventory (real values where OSHI works, zeros where the platform can't provide).
+            try { if (systemInfo == null) { systemInfo = new SystemInfo(); } } catch (Throwable ignore) {}
+            try { if (hardwareAbstractionLayer == null && systemInfo != null) { hardwareAbstractionLayer = systemInfo.getHardware(); } } catch (Throwable ignore) {}
+            try { if (os == null && systemInfo != null) { os = systemInfo.getOperatingSystem(); } } catch (Throwable ignore) {}
+
+            try {
+                var cpu = hardwareAbstractionLayer.getProcessor();
+                try { metricEngine.updateIntGauge("system.cpu.count", cpu.getLogicalProcessorCount()); } catch (Throwable ignore) {}
+                try {
+                    long[] ticks = cpu.getSystemCpuLoadTicks();
+                    double load = (prevTicks != null) ? cpu.getSystemCpuLoadBetweenTicks(prevTicks) : 0.0d;
+                    prevTicks = ticks;
+                    metricEngine.updateDoubleGauge("system.cpu.load", Double.isNaN(load) ? 0.0d : load);
+                } catch (Throwable ignore) { /* native cpu-load unavailable */ }
+            } catch (Throwable ignore) { /* no processor handle on this platform */ }
+
+            try {
+                metricEngine.updateLongGauge("memory.total", hardwareAbstractionLayer.getMemory().getTotal());
+                metricEngine.updateLongGauge("memory.available", hardwareAbstractionLayer.getMemory().getAvailable());
+            } catch (Throwable ignore) {}
+
+            try {
+                long diskTotal = 0L, diskAvail = 0L;
+                for (OSFileStore fs : os.getFileSystem().getFileStores()) {
+                    diskTotal += fs.getTotalSpace();
+                    diskAvail += fs.getUsableSpace();
+                }
+                metricEngine.updateLongGauge("disk.total", diskTotal);
+                metricEngine.updateLongGauge("disk.available", diskAvail);
+            } catch (Throwable ignore) { /* FS enumeration unavailable; skip */ }
+
+            try {
+                long netSent = 0L, netRecv = 0L;
+                for (NetworkIF net : hardwareAbstractionLayer.getNetworkIFs()) {
+                    netSent += net.getBytesSent();
+                    netRecv += net.getBytesRecv();
+                }
+                metricEngine.updateLongGauge("net.bytes.sent", netSent);
+                metricEngine.updateLongGauge("net.bytes.recv", netRecv);
+            } catch (Throwable ignore) {}
+
+            // ALWAYS emit the registered gauges (0 where OSHI couldn't populate them).
+            String json = gson.toJson(metricEngine.getAllMetrics());
+            cachedMetricsJson = json;
+            cachedMetricsAt = System.currentTimeMillis();
+            return json;
+        } catch (Throwable ex) {
+            logger.error("getMetricsJson() " + ex.getMessage(), ex);
+            return cachedMetricsJson != null ? cachedMetricsJson : "{}";
+        }
     }
 
     private List<Map<String,String>> getProcessInfo() {
