@@ -186,6 +186,13 @@ class SysInfoBuilder {
                 metricEngine.setGauge("system.uptime.seconds", "OS uptime (seconds)", "system", CMetric.MeasureClass.GAUGE_LONG);
                 metricEngine.setGauge("system.process.count", "running process count", "system", CMetric.MeasureClass.GAUGE_INT);
                 metricEngine.setGauge("system.thread.count", "running thread count", "system", CMetric.MeasureClass.GAUGE_INT);
+                // Devices (OSHI 7.x): GPUs (capacity/VRAM, not live utilization — OSHI can't do that),
+                // plus attached-device counts that matter for edge nodes (accelerators, peripherals).
+                metricEngine.setGauge("gpu.count", "graphics cards detected", "gpu", CMetric.MeasureClass.GAUGE_INT);
+                metricEngine.setGauge("gpu.vram.total", "total GPU VRAM across cards (bytes)", "gpu", CMetric.MeasureClass.GAUGE_LONG);
+                metricEngine.setGauge("usb.device.count", "connected USB devices", "devices", CMetric.MeasureClass.GAUGE_INT);
+                metricEngine.setGauge("display.count", "attached displays", "devices", CMetric.MeasureClass.GAUGE_INT);
+                metricEngine.setGauge("soundcard.count", "sound cards detected", "devices", CMetric.MeasureClass.GAUGE_INT);
             }
 
             // Best-effort OSHI reads. EVERY hardware access is individually guarded with Throwable —
@@ -288,6 +295,21 @@ class SysInfoBuilder {
             try { metricEngine.updateLongGauge("system.uptime.seconds", os.getSystemUptime()); } catch (Throwable ignore) {}
             try { metricEngine.updateIntGauge("system.process.count", os.getProcessCount()); } catch (Throwable ignore) {}
             try { metricEngine.updateIntGauge("system.thread.count", os.getThreadCount()); } catch (Throwable ignore) {}
+
+            // Devices (OSHI 7.x): GPUs + attached-device counts. VRAM is capacity, not utilization —
+            // OSHI does not expose live GPU load/temperature (that needs vendor NVML/ADL/Metal APIs).
+            try {
+                int gpuCount = 0; long vram = 0L;
+                for (var g : hardwareAbstractionLayer.getGraphicsCards()) {
+                    gpuCount++;
+                    try { vram += g.getVRam(); } catch (Throwable ignore) {}
+                }
+                metricEngine.updateIntGauge("gpu.count", gpuCount);
+                metricEngine.updateLongGauge("gpu.vram.total", vram);
+            } catch (Throwable ignore) {}
+            try { metricEngine.updateIntGauge("display.count", hardwareAbstractionLayer.getDisplays().size()); } catch (Throwable ignore) {}
+            try { metricEngine.updateIntGauge("usb.device.count", hardwareAbstractionLayer.getUsbDevices(false).size()); } catch (Throwable ignore) {}
+            try { metricEngine.updateIntGauge("soundcard.count", hardwareAbstractionLayer.getSoundCards().size()); } catch (Throwable ignore) {}
 
             // ALWAYS emit the registered gauges (0 where OSHI couldn't populate them).
             String json = gson.toJson(metricEngine.getAllMetrics());
