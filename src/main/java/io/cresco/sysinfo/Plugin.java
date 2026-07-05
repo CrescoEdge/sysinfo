@@ -7,9 +7,13 @@ import io.cresco.library.plugin.Executor;
 import io.cresco.library.plugin.PluginBuilder;
 import io.cresco.library.plugin.PluginService;
 import io.cresco.library.utilities.CLogger;
+import org.apache.felix.hc.api.HealthCheck;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.annotations.*;
 
+import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.Map;
 
 @Component(
@@ -30,6 +34,8 @@ public class Plugin implements PluginService {
 
     private SysInfoBuilder builder;
     private Benchmark bmark;
+    // Felix HealthCheck registration (central health); best-effort, unregistered on stop
+    private ServiceRegistration<HealthCheck> healthReg;
 
 
     @Activate
@@ -94,6 +100,9 @@ public class Plugin implements PluginService {
                 //set plugin active
                 pluginBuilder.setIsActive(true);
 
+                // Register the central Felix HealthCheck (best-effort; must never break startup).
+                registerHealthCheck();
+
                 if (pluginBuilder.getConfig().getBooleanParam("enable_perf", false)) {
                     perfSysMonitor = new PerfSysMonitor(pluginBuilder, builder);
                     perfSysMonitor.start();
@@ -111,8 +120,26 @@ public class Plugin implements PluginService {
         }
     }
 
+    /** Register sysinfo's Felix HealthCheck so CrescoHealthExecutor discovers it. Best-effort. */
+    private void registerHealthCheck() {
+        try {
+            Dictionary<String, Object> props = new Hashtable<>();
+            props.put(HealthCheck.NAME, "sysinfo");
+            props.put(HealthCheck.TAGS, new String[]{"local"});
+            healthReg = context.registerService(HealthCheck.class,
+                    new SysInfoHealthCheck(pluginBuilder, builder), props);
+            logger.info("Registered sysinfo HealthCheck (Felix HC)");
+        } catch (Throwable t) {
+            // health is best-effort: a missing hc.api bundle must never break sysinfo
+            if (logger != null) logger.warn("Could not register sysinfo HealthCheck: " + t.getMessage());
+        }
+    }
+
     @Override
     public boolean isStopped() {
+        try {
+            if (healthReg != null) { healthReg.unregister(); healthReg = null; }
+        } catch (Exception ignore) { }
         if(perfSysMonitor != null) {
             perfSysMonitor.stop();
         }

@@ -38,6 +38,17 @@ Requires `io.cresco:library` in your local Maven repository — build [library](
 | [Java Client (clientlib)](https://github.com/CrescoEdge/clientlib) | Java client library for driving Cresco through the wsapi. |
 | [Python Client (pycrescolib)](https://github.com/CrescoEdge/pycrescolib) | Python client library for driving Cresco through the wsapi. |
 
+## Observability
+
+Wired into Cresco's central metrics + health systems, consistent with every other plugin
+(sysinfo is the reference for the metrics contract):
+
+- **Metrics** — `getmetrics` returns `MeasurementEngine` gauges for the host (CPU / memory / disk /
+  network); aggregated fabric-wide by the controller's `getmetricinventory`.
+- **Health** — registers a Felix `HealthCheck` (name `sysinfo`, tag `local`) discovered by the
+  controller's `CrescoHealthExecutor`; reports `OK` while host telemetry is being served and
+  surfaces in the health summary and the controller's `gethealthinventory` action.
+
 ## License
 
 Apache License, Version 2.0.
